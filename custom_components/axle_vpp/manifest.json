@@ -6,7 +6,7 @@
   "codeowners": ["@deanhalllincoln"],
   "iot_class": "cloud_polling",
   "integration_type": "service",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "config_flow": true,
   "platforms": [
     "sensor",
