@@ -29,9 +29,12 @@ class AxleCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> list[dict]:
         """Fetch the latest event list from the Axle API."""
         try:
-            return await self.api.async_get_events()
+            events = await self.api.async_get_events()
         except Exception as err:
             raise UpdateFailed(f"Error communicating with Axle API: {err}") from err
+
+        _LOGGER.debug("Coordinator storing %d event(s)", len(events))
+        return events
 
     @property
     def current_event(self) -> dict | None:
@@ -56,6 +59,9 @@ class AxleCoordinator(DataUpdateCoordinator):
                 upcoming.append((start, event))
 
         if not upcoming:
+            _LOGGER.debug("current_event: no active or upcoming events")
             return None
         upcoming.sort(key=lambda x: x[0])
-        return upcoming[0][1]
+        chosen = upcoming[0][1]
+        _LOGGER.debug("current_event: next upcoming at %s", chosen.get("start_time"))
+        return chosen
