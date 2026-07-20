@@ -8,7 +8,7 @@ from .const import DOMAIN
 from .coordinator import AxleCoordinator
 from .api import AxleApi
 
-PLATFORMS: list[str] = ["sensor", "calendar"]  # sensor and calendar platform now
+PLATFORMS: list[str] = ["sensor", "calendar"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
