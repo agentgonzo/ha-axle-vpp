@@ -118,7 +118,7 @@ class AxleBase:
 class AxleSensor(AxleBase, SensorEntity):
     @property
     def native_value(self):
-        return (self.coordinator.data or {}).get(self._key)
+        return (self.coordinator.current_event or {}).get(self._key)
 
 
 # ------------------------------------------------------------------
@@ -136,7 +136,7 @@ class AxleFriendlySensor(AxleBase, SensorEntity):
             "updated_at_friendly": "updated_at",
         }
 
-        raw = (self.coordinator.data or {}).get(mapping[self._key])
+        raw = (self.coordinator.current_event or {}).get(mapping[self._key])
         if not raw:
             return None
 
@@ -168,7 +168,7 @@ class AxleEventSensor(AxleBase, SensorEntity):
 
     @property
     def native_value(self):
-        data = self.coordinator.data or {}
+        data = self.coordinator.current_event or {}
         now = dt_util.utcnow()
 
         start_raw = data.get("start_time")
@@ -222,7 +222,7 @@ class AxleEventBinarySensor(AxleBase, BinarySensorEntity):
 
     @property
     def is_on(self):
-        data = self.coordinator.data or {}
+        data = self.coordinator.current_event or {}
         now = dt_util.utcnow()
 
         start_raw = data.get("start_time")

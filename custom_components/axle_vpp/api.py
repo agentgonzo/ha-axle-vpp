@@ -1,11 +1,14 @@
 import aiohttp
 from datetime import datetime
 
+
 class AxleApi:
     """
     Production API client for Axle Energy VPP events.
-    
-    Fetches real event data from Axle and formats it for the coordinator/sensors.
+
+    Fetches real event data from Axle and normalises it to a list of event dicts
+    regardless of whether the API returns a single object, a bare list, or an
+    {"events": [...]} envelope.
     """
 
     BASE_URL = "https://api.axle.energy/vpp/home-assistant/event"
@@ -17,13 +20,12 @@ class AxleApi:
             "Accept": "application/json",
         }
 
-    async def async_get_event(self) -> dict | None:
+    async def async_get_events(self) -> list[dict]:
         """
-        Fetch the latest VPP event from Axle.
+        Fetch VPP events from Axle.
 
-        Returns:
-            dict with keys: start_time, end_time, import_export, updated_at
-            or None if no event is active.
+        Returns a (possibly empty) list of event dicts, each with keys:
+            start_time, end_time, import_export, updated_at
         Raises:
             Exception on network or API errors.
         """
@@ -36,16 +38,36 @@ class AxleApi:
         except Exception as err:
             raise Exception(f"Error fetching Axle API: {err}") from err
 
-        # If API returns nothing or missing start_time, treat as no event
-        if not data or "start_time" not in data:
-            return None
+        return self._normalise(data)
 
-        # Map API response to coordinator format
-        event = {
-            "start_time": data.get("start_time"),               # ISO 8601 string
-            "end_time": data.get("end_time"),                   # ISO 8601 string
-            "import_export": data.get("import_export", 0),      # Default to 0
-            "updated_at": data.get("updated_at", datetime.utcnow().isoformat() + "Z"),
-        }
+    def _normalise(self, data) -> list[dict]:
+        """Normalise any API response shape to a list of event dicts."""
+        if not data:
+            return []
 
-        return event
+        # Unwrap {"events": [...]} envelope
+        if isinstance(data, dict) and "events" in data:
+            data = data["events"]
+
+        # Single-event flat dict
+        if isinstance(data, dict):
+            if "start_time" not in data:
+                return []
+            data = [data]
+
+        if not isinstance(data, list):
+            return []
+
+        now_iso = datetime.utcnow().isoformat() + "Z"
+        events = []
+        for item in data:
+            if not isinstance(item, dict) or "start_time" not in item:
+                continue
+            events.append({
+                "start_time": item.get("start_time"),
+                "end_time": item.get("end_time"),
+                "import_export": item.get("import_export", 0),
+                "updated_at": item.get("updated_at", now_iso),
+            })
+
+        return events
